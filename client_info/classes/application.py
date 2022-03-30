@@ -1,6 +1,6 @@
 import sys
 import pygame
-from classes.menu import Menu
+from client_info.classes.menu import Menu
 
 
 class Application:
@@ -17,9 +17,9 @@ class Application:
 
             Application.screen = pygame.display.set_mode((900, 600))
             pygame.display.set_caption("Monopoly")
-            pygame.display.set_icon(pygame.image.load("assets/icon/caption-icon.png"))
+            pygame.display.set_icon(pygame.image.load("client_info/assets/icon/caption-icon.png"))
 
-            Application.main_menu_background = pygame.image.load("assets/background/main-bg.png")
+            Application.main_menu_background = pygame.image.load("client_info/assets/background/main-bg.png")
             Menu.initialize()
 
     @staticmethod
@@ -29,8 +29,7 @@ class Application:
         while True:
             Menu.main_menu.mainloop(Application.screen, Application.menu_background)
             for event in pygame.event.get():
-                match event.type:
-                    case pygame.QUIT:
+                if event.type == pygame.QUIT:
                         pygame.quit()
                         sys.exit()
             pygame.display.flip()

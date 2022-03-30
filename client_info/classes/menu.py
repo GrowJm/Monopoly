@@ -1,3 +1,4 @@
+import pygame
 import pygame_menu
 
 
@@ -20,10 +21,9 @@ class Menu:
 
             settings_submenu = pygame_menu.Menu('Settings', 400, 250)
             Menu.main_menu.add.button('Settings', settings_submenu)
-            # TODO: add volume sliders
-            # https://pygame-menu.readthedocs.io/en/4.2.5/
 
     @staticmethod
     def start_the_game():
         pass
+
 
