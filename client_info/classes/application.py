@@ -1,40 +1,27 @@
-import sys
 import pygame
-from client_info.classes.menu import Menu
+import sys
+from client_info.classes.images import *
+import pygame_menu
+pygame.init()
+pygame.font.init()
 
-
-class Application:
-    __isInitialized = False
-    screen = None
-    main_menu_background = None
-
+class Application():
     @staticmethod
-    def __initialize():
-        if not Application.__isInitialized:
-            Application.__isInitialized = True
-
-            pygame.init()
-
-            Application.screen = pygame.display.set_mode((900, 600))
-            pygame.display.set_caption("Monopoly")
-            pygame.display.set_icon(pygame.image.load("client_info/assets/icon/caption-icon.png"))
-
-            Application.main_menu_background = pygame.image.load("client_info/assets/background/main-bg.png")
-            Menu.initialize()
-
-    @staticmethod
-    def run():
-        Application.__initialize()
-
+    def application():
         while True:
-            Menu.main_menu.mainloop(Application.screen, Application.menu_background)
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                        pygame.quit()
-                        sys.exit()
+            SCREEN = pygame.display.set_mode((1920,1000))
+            SCREEN.blit(BG_menu,(0,0))
+            pygame.display.set_caption("Menu")
+            scale_play_button = pygame.transform.scale(play_button, (250, 150))
+            SCREEN.blit(scale_play_button,[0,100])
             pygame.display.flip()
 
-    @staticmethod
-    def menu_background():
-        Application.screen.blit(Application.main_menu_background, (0, 0))
+
+
+
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
 
