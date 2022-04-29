@@ -1,3 +1,5 @@
+import time
+import asyncio
 import pygame
 from pygame.locals import *
 import pygame_widgets as pw
@@ -18,11 +20,13 @@ sheight = 900
 screen = pygame.display.set_mode((swidth, sheight))
 pygame.display.set_caption('Monopoly')
 
-font = pygame.font.SysFont('Times New Roman', 20)
+font = pygame.font.SysFont('Times New Roman', 70)
 
 bg_color = '#26272c'
 
 ls = []
+ls_with_colors = ['red', 'blue', 'green', 'yellow']
+
 
 def draw_text(text, text_col, x, y):
     img = font.render(text, True, text_col)
@@ -32,13 +36,21 @@ def draw_text(text, text_col, x, y):
 def normalize(color: str): #Нормализация цвета (из Color в RGB и наоборот)
     return pygame.Color(color)
 
+gln = (' ', normalize(bg_color))
 
 class Company:
-    def __init__(self, var):
-        self.var = var
+    def __init__(self):
+        self.player_id = -1
+        self.color = 'white'
 
-    def __repr__(self):
-        return self.var.keys()[0]
+    def buy_field(self, id):
+        self.player_id = id
+        self.color = ls_with_colors[self.id]
+
+    def draw(self):
+        pass
+
+
 
 class Field:
     def __init__(self):
@@ -50,8 +62,21 @@ class Field:
         z = True
 
         for i, k in enumerate(dt, 1):
-            img = pygame.transform.rotate(angle=90, surface=font.render(f'{k.replace(";", " ")}', True, normalize('black'), normalize('white')))
+            if k == 'Старт':
+                k = 'start.png'
+            elif k == 'Полиция':
+                k = 'police.png'
+            elif k == '?':
+                k = 'question.png'
+            elif k == 'Лотерея':
+                k = 'lotery.png'
+            else:
+                k = k+'.svg'
+
+            img = pygame.transform.rotate(angle=90, surface=pygame.transform.scale(pygame.image.load(f'map_svg/{k}'), (50, 50)))
+            pygame.draw.rect(screen, normalize('white'), (count_x-10, count_y-10, 70, 70), )
             screen.blit(img, (count_x, count_y))
+
             ls.append((count_x, count_y))
             if z is True:
                 count_x += 130
@@ -70,18 +95,19 @@ class Field:
 
 
 class Player:
-    ls_with_colors = ['red', 'blue', 'green', 'yellow']
-
     def __init__(self, id):
         self.pos = 0
         self.id = id
+        self.color = ls_with_colors[self.id]
+        self.balance = 15000
 
     def dice(self):
+        global gln
         dice_num = random.randint(1, 6)
         dice_num2 = random.randint(1, 6)
+        gln = (str(dice_num)+':'+str(dice_num2), self.color)
 
-
-
+        print(dice_num + dice_num2)
         return dice_num + dice_num2
 
     def move(self, num):
@@ -90,7 +116,7 @@ class Player:
             self.pos = 0
 
     def draw(self):
-        pygame.draw.circle(screen, color=normalize(self.ls_with_colors[self.id]), radius=10, center=ls[self.pos])
+        pygame.draw.circle(screen, color=normalize(self.color), radius=10, center=(ls[self.pos][0]+25, ls[self.pos][1]+25))
 
 
 ls_players = [Player(i) for i in range(2)]
@@ -124,6 +150,9 @@ run = True
 while run:
     screen.fill(bg_color)
     f.draw_field(dt_company)
+
+    draw_text(gln[0], gln[1], 400, 480)
+
     for i in ls_players:
         i.draw()
     for event in pygame.event.get():
