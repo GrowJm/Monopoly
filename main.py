@@ -14,7 +14,7 @@ from threading import Thread
 Tk().wm_withdraw()
 pygame.init()
 
-swidth = 1000
+swidth = 1450
 sheight = 900
 
 screen = pygame.display.set_mode((swidth, sheight))
@@ -28,12 +28,12 @@ ls = []
 ls_with_colors = ['coral1', 'royalblue', 'seagreen1', 'tan1']
 
 
-def draw_text(text, text_col, x, y, font):
+def draw_text(text, text_col, x, y, font): # Отрисовка текста
     img = font.render(text, True, text_col)
     screen.blit(img, (x, y))
 
 
-def normalize(color):
+def normalize(color): # Нормализация цвета
     return pygame.Color(color)
 
 
@@ -52,15 +52,14 @@ class Company:
         self.count_y = count_y
         self.group = group
 
-    def buy_field(self, id):
+    def buy_field(self, id): # Покупка поля
         self.player_id = id
         self.color = ls_with_colors[self.player_id]
         self.price += 500
-        #self.draw()
 
-    def draw(self, img):
-        #print(self.color)
-        pygame.draw.rect(screen, normalize(self.color), (self.count_x-10, self.count_y-10, 70, 70), )
+    def draw(self, img): # Отрисовка поля
+        pygame.draw.rect(screen, normalize(self.color), (self.count_x-10, self.count_y-10, 120, 70), )
+        #draw_text(str(self.price), 'black', self.count_x, self.count_y+70, font=pygame.font.SysFont('Times New Roman', 20))
         screen.blit(img, (self.count_x, self.count_y))
 
     def __repr__(self):
@@ -68,56 +67,35 @@ class Company:
 
 
 ls_company = []
-ls_random = ['question', 'lotery', 'police']
-with open('c.txt', 'r', encoding='utf-8') as f:
+with open('c.txt', 'r', encoding='utf-8') as f: # Компании берутся из файла c.txt
     for i in f.readlines():
         i = i.split()
         ls_company.append((i[0], i[1]))
-    ls_company.insert(0, ('start', 'Start'))
-
-    for i in ls_random:
-        ls_company.insert(random.randint(1, len(ls_company)-1), (i, 'Spec'))
 
 dt_company = {i: k for i, k in ls_company}
 
 ls_img = []
-for k in dt_company:
-    if k == 'start':
-        k = 'start.png'
-    elif k == 'police':
-        k = 'police.png'
-    elif k == 'question':
-        k = 'question.png'
-    elif k == 'lotery':
-        k = 'lotery.png'
+for s, k in enumerate(ls_company):
+    if k[0] in {'start', 'police', 'question', 'lotery', 'nalog', 'jail'}:
+        k = k[0] + '.png'
     else:
-        k = k + '.svg'
+        k = k[0] + '.svg'
 
-    img = pygame.transform.rotate(angle=90, surface=pygame.transform.scale(pygame.image.load(f'map_svg/{k}'), (50, 50)))
+    img = pygame.transform.scale(pygame.image.load(f'map_svg/{k}'), (100, 50))
     ls_img.append(img)
+
 
 class Field:
     def __init__(self):
         pass
 
-    def draw_field(self, dt):
+    def draw_field(self, dt): # Рисуем поле игры
         count_x = 0
         count_y = 0
-        z = True
 
-        for i, k in enumerate(dt, 1):
-            if k == 'Старт':
-                k = 'start.png'
-            elif k == 'Полиция':
-                k = 'police.png'
-            elif k == '?':
-                k = 'question.png'
-            elif k == 'Лотерея':
-                k = 'lotery.png'
-            else:
-                k = k+'.svg'
-
-            if len(ls_comps) < len(dt):
+        for i, k in enumerate(ls_company, 1):
+            k = k[0]
+            if len(ls_comps) < len(ls_company):
                 comp = Company(i, k.replace('.png', '').replace('.svg', ''), count_x, count_y, dt[k.replace('.png', '').replace('.svg', '')])
                 comp.draw(img)
                 ls_comps.append(comp)
@@ -127,20 +105,17 @@ class Field:
                 for n, comp in enumerate(ls_comps, 0):
                     comp.draw(ls_img[n])
 
-            if z is True:
+            if i > 0 and i <= 10:
                 count_x += 130
 
-            if i >= 7 and i <= 14:
-                z = False
-                count_y += 100
+            if i > 10 and i <= 20:
+                count_y += 80
 
-            if i > 14 and i <= 21:
-                z = False
+            if i > 20 and i <= 30:
                 count_x -= 130
 
-            if i > 21 and i <= 28:
-                z = False
-                count_y -= 100
+            if i > 30 and i <= 44:
+                count_y -= 80
 
 
 class Player:
@@ -153,12 +128,13 @@ class Player:
         self.my_comps = []
         self.total_balance = self.get_balance()
         self.is_alive = True
+        self.but = None
 
-    def get_balance(self):
+    def get_balance(self): # total balance игрока
         self.total_balance = self.balance + sum(s.price for s in self.my_comps if len(self.my_comps) > 0)
         return self.total_balance
 
-    def dice(self):
+    def dice(self): # Бросить кубики
         global gln
         dice_num = random.randint(1, 6)
         dice_num2 = random.randint(1, 6)
@@ -171,17 +147,18 @@ class Player:
             self.pos = 0
         if self.pos+num > len(ls_comps):
             self.pos = num - (len(ls_comps)-self.pos)
-            #print(self.pos, num, len(ls_comps), self.color)
         else:
             self.pos += num
+        pygame.display.update()
 
     def draw(self):
         if self.is_alive:
-            pygame.draw.circle(screen, color=normalize(self.color), radius=10, center=(ls[self.pos][0]+25+self.id*3, ls[self.pos][1]+25+self.id*3))
-            draw_text(f'{self.name}:{self.balance}/{self.total_balance}', self.color, 125, self.id*100+100, font = pygame.font.SysFont('Times New Roman', 50))
+            pygame.draw.circle(screen, color=normalize(self.color), radius=20, center=(ls[self.pos][0]+25+self.id*3, ls[self.pos][1]+25+self.id*3))
+            draw_text(f'{self.name}:{self.balance}/{self.total_balance}', self.color, 220, self.id*100+100, font=pygame.font.SysFont('Times New Roman', 50))
 
-    def buy(self):
-        if ls_comps[self.pos].name in {'Start', 'Police', 'Question'}:
+    def buy(self): # Покупка поля
+        if ls_comps[self.pos].name.capitalize() in {'Start', 'Police', 'Question', 'Jail', 'Nalog'}:
+            self.but.hide()
             return
 
         if ls_comps[self.pos].player_id == -1:
@@ -192,24 +169,35 @@ class Player:
                 self.get_balance()
                 print(f'{self.color} Купил {ls_comps[self.pos]}')
             else:
-                messagebox.showinfo('!', 'Недостаточно средств')
+                print('Недостаточно средств')
         else:
-            messagebox.showinfo('!', f'Игрок {ls_comps[self.pos].player_id} уже владеет этим полем')
+            self.balance -= ls_comps[self.pos].price
+            ls_players[ls_comps[self.pos].player_id].balance += ls_comps[self.pos].price
+            self.get_balance()
+
+            print(f'Рента {ls_comps[self.pos].price}')
+        self.but.hide()
         pygame.display.update()
 
-    def buy_request(self):
-        #print(ls_comps, self.pos, '------')
+    def buy_request(self): # Добавление кнопки покупки
         cell = self.pos
-        if cell == 29:
-            cell = 0
+        #print(cell)
+        if ls_comps[cell].name not in {'Start', 'Police', 'Question', 'Jail', 'Nalog'}:
+            if ls_comps[cell].player_id == -1:
+                self.but = Button(screen, 680, 710, 300, 70, text=f'Купить {ls_comps[cell]} за {ls_comps[cell].price}',
+                                  inactiveColour=normalize(self.color), radius=10,
+                                  onClick=lambda: self.buy(),
+                                  font=pygame.font.SysFont('Times New Roman', 20), textVAlign='center')
 
-        Button(screen, 300, 300, 250, 70, text=f'Купить {ls_comps[cell]}', inactiveColour=normalize(self.color), radius=5,
-                onClick=lambda: self.buy(),
-                font=pygame.font.SysFont('Times New Roman', 20), textVAlign='center')
+            else:
+                self.but = Button(screen, 730, 710, 250, 70, text=f'Залпатить ренту {ls_comps[cell].price}',
+                                  inactiveColour=normalize(self.color), radius=10,
+                                  onClick=lambda: self.buy(),
+                                  font=pygame.font.SysFont('Times New Roman', 20), textVAlign='center')
+        pygame.display.update()
 
 
 ls_players = [Player(i, str(i)) for i in range(4)]
-
 id_turn = 0
 
 
@@ -222,28 +210,36 @@ def start_(id):
     if id_turn > len(ls_players) - 1:
         id_turn = 0
 
+    pygame.display.update()
+
 
 f = Field()
 
 run = True
-
+clock = pygame.time.Clock()
 while run:
+    clock.tick(60)
+
     screen.fill(bg_color)
     f.draw_field(dt_company)
-    pygame.draw.rect(screen, normalize((224, 255, 255)), [100, 100, 300, 100*len(ls_players)])
-    draw_text(gln[0], gln[1], 400, 480, font = pygame.font.SysFont('Times New Roman', 70))
+    pygame.draw.rect(screen, normalize((224, 255, 255)), [200, 100, 300, 100*len(ls_players)])
+    draw_text(gln[0], gln[1], 1000, 705, font=pygame.font.SysFont('Times New Roman', 70))
 
     for i in ls_players:
         i.draw()
 
-    for event in pygame.event.get():
+    events = pygame.event.get()
+    for event in events:
         if event.type == pygame.QUIT:
             run = False
 
-    Button(screen, 590, 490, 170, 70, text='Сделать ход', inactiveColour=normalize('violet'), radius=5, onClick=lambda: start_(id_turn),
+    butn = Button(screen, 1111, 710, 170, 70, text='Сделать ход', inactiveColour=ls_players[id_turn].color,
+        hoverColour=normalize(ls_players[id_turn].color),
+        pressedColour=normalize(ls_players[id_turn].color),
+        onClick=lambda: start_(id_turn),
         font=pygame.font.SysFont('Times New Roman', 20), textVAlign='center')
 
-    pw.update(pygame.event.get())
+    pw.update(events)
+
     pygame.display.update()
     pygame.display.flip()
-
