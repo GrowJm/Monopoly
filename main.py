@@ -143,12 +143,14 @@ class Player:
         return dice_num + dice_num2
 
     def move(self, num):
-        if self.pos+num == 29:
+
+        if self.pos+num == len(ls_comps):
             self.pos = 0
-        if self.pos+num > len(ls_comps):
+        elif self.pos+num > len(ls_comps):
             self.pos = num - (len(ls_comps)-self.pos)
         else:
             self.pos += num
+
         pygame.display.update()
 
     def draw(self):
@@ -182,6 +184,7 @@ class Player:
     def buy_request(self): # Добавление кнопки покупки
         cell = self.pos
         #print(cell)
+        #print(len(ls_comps), cell)
         if ls_comps[cell].name not in {'Start', 'Police', 'Question', 'Jail', 'Nalog'}:
             if ls_comps[cell].player_id == -1:
                 self.but = Button(screen, 680, 710, 300, 70, text=f'Купить {ls_comps[cell]} за {ls_comps[cell].price}',
