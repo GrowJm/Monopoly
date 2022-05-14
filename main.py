@@ -10,6 +10,13 @@ from tkinter import Tk
 from tkinter import messagebox
 import random
 from threading import Thread
+import sqlite3
+
+conn = sqlite3.connect('LastGames.db')
+cursor = conn.cursor()
+
+cursor.execute("CREATE TABLE IF NOT EXISTS Games (Player TEXT)")
+conn.commit()
 
 Tk().wm_withdraw()
 pygame.init()
@@ -124,7 +131,7 @@ class Player:
         self.pos = 0
         self.id = id
         self.color = ls_with_colors[self.id]
-        self.balance = 5000
+        self.balance = 1000
         self.my_comps = []
         self.total_balance = self.get_balance()
         self.is_alive = True
@@ -173,9 +180,12 @@ class Player:
             else:
                 print('Недостаточно средств')
         else:
-            self.balance -= ls_comps[self.pos].price
-            ls_players[ls_comps[self.pos].player_id].balance += ls_comps[self.pos].price
-            self.get_balance()
+            if self.balance >= ls_comps[self.pos].price:
+                self.balance -= ls_comps[self.pos].price
+                ls_players[ls_comps[self.pos].player_id].balance += ls_comps[self.pos].price
+                self.get_balance()
+            else:
+                print('Недостаточно средств')
 
             print(f'Рента {ls_comps[self.pos].price}')
         self.but.hide()
@@ -183,9 +193,9 @@ class Player:
 
     def buy_request(self): # Добавление кнопки покупки
         cell = self.pos
-        #print(cell)
-        #print(len(ls_comps), cell)
-        if ls_comps[cell].name not in {'Start', 'Police', 'Question', 'Jail', 'Nalog'}:
+
+        if ls_comps[cell].name not in {'Start', 'Police', 'Question', 'Jail', 'Nalog', 'Lotery'}:
+
             if ls_comps[cell].player_id == -1:
                 self.but = Button(screen, 680, 710, 300, 70, text=f'Купить {ls_comps[cell]} за {ls_comps[cell].price}',
                                   inactiveColour=normalize(self.color), radius=10,
@@ -202,17 +212,35 @@ class Player:
 
 ls_players = [Player(i, str(i)) for i in range(4)]
 id_turn = 0
+ls_lose = []
 
 
 def start_(id):
     global id_turn
-    num = ls_players[id].dice()
-    ls_players[id].move(num)
-    ls_players[id].buy_request()
-    id_turn += 1
+    if ls_players[id].is_alive:
+        if ls_players[id].total_balance > min([i.price for i in ls_comps]):
+            num = ls_players[id].dice()
+            ls_players[id].move(num)
+            ls_players[id].buy_request()
+            print(id)
+            ls_players[id].total_balance -= 500 # Тест поражений / Убрать в готовом
+
+            if id != 0:
+                if ls_players[id-1].but != None:
+                    ls_players[id-1].but.hide()
+            else:
+                if ls_players[len(ls_players) - 1].but != None:
+                    ls_players[len(ls_players)-1].but.hide()
+            id_turn += 1
+        else:
+            ls_players[id].is_alive = False
+
+    else:
+        ls_lose.append(ls_players[id])
+        id_turn += 1
+
     if id_turn > len(ls_players) - 1:
         id_turn = 0
-
     pygame.display.update()
 
 
@@ -231,6 +259,11 @@ while run:
     for i in ls_players:
         i.draw()
 
+    if len(ls_players) - len(ls_lose) == 1:
+        print(ls_players[id_turn].name, 'Победил')
+        cursor.execute("INSERT INTO Games VALUES (?)", (ls_players[id_turn].name, ))
+        conn.commit()
+        run = False
     events = pygame.event.get()
     for event in events:
         if event.type == pygame.QUIT:
