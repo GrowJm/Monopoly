@@ -313,7 +313,7 @@ def main():
             run = False
 
 
-            #run = False
+
         events = pygame.event.get()
         for event in events:
             if event.type == pygame.QUIT:
