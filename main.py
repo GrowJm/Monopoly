@@ -11,6 +11,7 @@ from tkinter import messagebox
 import random
 from threading import Thread
 import sqlite3
+import pygame_menu
 
 conn = sqlite3.connect('LastGames.db')
 cursor = conn.cursor()
@@ -33,6 +34,9 @@ bg_color = '#26272c'
 
 ls = []
 ls_with_colors = ['coral1', 'royalblue', 'seagreen1', 'tan1']
+
+
+
 
 
 def draw_text(text, text_col, x, y, font): # Отрисовка текста
@@ -131,11 +135,12 @@ class Player:
         self.pos = 0
         self.id = id
         self.color = ls_with_colors[self.id]
-        self.balance = 1000
+        self.balance = 10000
         self.my_comps = []
         self.total_balance = self.get_balance()
         self.is_alive = True
         self.but = None
+        self.but2 = None
 
     def get_balance(self): # total balance игрока
         self.total_balance = self.balance + sum(s.price for s in self.my_comps if len(self.my_comps) > 0)
@@ -191,8 +196,25 @@ class Player:
         self.but.hide()
         pygame.display.update()
 
+    def trade(self):
+        def choice_player(player):
+            print(player)
+            menu2.disable()
+            self.but2.hide()
+
+        menu2 = pygame_menu.Menu('Обмен', swidth, sheight, theme=pygame_menu.themes.THEME_DARK)
+        for p in ls_players:
+            if p.id != self.id:
+                menu2.add.button(f'{p.name}', lambda p=p: choice_player(p.name))
+        menu2.mainloop(screen)
+
     def buy_request(self): # Добавление кнопки покупки
         cell = self.pos
+
+        self.but2 = Button(screen, 530, 510, 250, 70, text=f'Обмен',
+                      inactiveColour=normalize(self.color), radius=10,
+                      onClick=lambda: self.trade(),
+                      font=pygame.font.SysFont('Times New Roman', 20), textVAlign='center')
 
         if ls_comps[cell].name not in {'Start', 'Police', 'Question', 'Jail', 'Nalog', 'Lotery'}:
 
@@ -207,75 +229,116 @@ class Player:
                                   inactiveColour=normalize(self.color), radius=10,
                                   onClick=lambda: self.buy(),
                                   font=pygame.font.SysFont('Times New Roman', 20), textVAlign='center')
+        else:
+            if ls_comps[cell].name == 'Nalog':
+                self.balance=-1000
+                self.get_balance()
+            elif ls_comps[cell].name == 'Police':
+                pass
+            elif ls_comps[cell].name == 'Question':
+                pass
         pygame.display.update()
 
 
-ls_players = [Player(i, str(i)) for i in range(4)]
+
 id_turn = 0
 ls_lose = []
 
 
 def start_(id):
     global id_turn
-    if ls_players[id].is_alive:
-        if ls_players[id].total_balance > min([i.price for i in ls_comps]):
-            num = ls_players[id].dice()
-            ls_players[id].move(num)
-            ls_players[id].buy_request()
-            print(id)
-            ls_players[id].total_balance -= 500 # Тест поражений / Убрать в готовом
+    player = ls_players[id]
+    if player.is_alive:
+        if player.total_balance > min([i.price for i in ls_comps]):
+            num = player.dice()
+            player.move(num)
+            player.buy_request()
+
+
+
+            player.total_balance -= 200
+            if player.total_balance < min([i.price for i in ls_comps]):
+                ls_players[id].is_alive = False
+                ls_lose.append(player)
+                id_turn += 1
 
             if id != 0:
                 if ls_players[id-1].but != None:
                     ls_players[id-1].but.hide()
+                    ls_players[id - 1].but2.hide()
             else:
                 if ls_players[len(ls_players) - 1].but != None:
                     ls_players[len(ls_players)-1].but.hide()
+                    ls_players[len(ls_players)-1].but2.hide()
             id_turn += 1
         else:
             ls_players[id].is_alive = False
 
     else:
-        ls_lose.append(ls_players[id])
+        ls_lose.append(player)
         id_turn += 1
 
     if id_turn > len(ls_players) - 1:
         id_turn = 0
+
     pygame.display.update()
 
 
-f = Field()
+def main():
+    global ls_players
+    ls_players = [Player(i, str(i)) for i in range(sliderr.get_value())]
 
-run = True
-clock = pygame.time.Clock()
-while run:
-    clock.tick(60)
+    f = Field()
 
-    screen.fill(bg_color)
-    f.draw_field(dt_company)
-    pygame.draw.rect(screen, normalize((224, 255, 255)), [200, 100, 300, 100*len(ls_players)])
-    draw_text(gln[0], gln[1], 1000, 705, font=pygame.font.SysFont('Times New Roman', 70))
+    run = True
+    clock = pygame.time.Clock()
+    while run:
+        clock.tick(60)
 
-    for i in ls_players:
-        i.draw()
+        screen.fill(bg_color)
+        f.draw_field(dt_company)
+        pygame.draw.rect(screen, normalize((224, 255, 255)), [200, 100, 300, 100*len(ls_players)])
+        draw_text(gln[0], gln[1], 1000, 705, font=pygame.font.SysFont('Times New Roman', 70))
 
-    if len(ls_players) - len(ls_lose) == 1:
-        print(ls_players[id_turn].name, 'Победил')
-        cursor.execute("INSERT INTO Games VALUES (?)", (ls_players[id_turn].name, ))
-        conn.commit()
-        run = False
-    events = pygame.event.get()
-    for event in events:
-        if event.type == pygame.QUIT:
+        for i in ls_players:
+            i.draw()
+
+        if len(ls_players) - len(ls_lose) == 1:
+            print(ls_players[id_turn].name, 'Победил')
+            draw_text(f'{ls_players[id_turn].name} Победил', 'pink', 500, 100, font)
+            cursor.execute("INSERT INTO Games VALUES (?)", (ls_players[id_turn].name, ))
+            conn.commit()
+
+
             run = False
 
-    butn = Button(screen, 1111, 710, 170, 70, text='Сделать ход', inactiveColour=ls_players[id_turn].color,
-        hoverColour=normalize(ls_players[id_turn].color),
-        pressedColour=normalize(ls_players[id_turn].color),
-        onClick=lambda: start_(id_turn),
-        font=pygame.font.SysFont('Times New Roman', 20), textVAlign='center')
 
-    pw.update(events)
+            #run = False
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.QUIT:
+                run = False
 
-    pygame.display.update()
-    pygame.display.flip()
+        butn = Button(screen, 1111, 710, 170, 70, text='Сделать ход', inactiveColour=ls_players[id_turn].color,
+            hoverColour=normalize(ls_players[id_turn].color),
+            pressedColour=normalize(ls_players[id_turn].color),
+            onClick=lambda: start_(id_turn),
+            font=pygame.font.SysFont('Times New Roman', 20), textVAlign='center')
+
+        pw.update(events)
+
+        pygame.display.update()
+        pygame.display.flip()
+
+
+def start_the_game():
+    print('Hello', sliderr.get_value())
+    main()
+    menu.disable()
+
+
+menu = pygame_menu.Menu('Welcome', swidth, sheight, theme=pygame_menu.themes.THEME_DARK)
+sliderr = menu.add.range_slider('Количество игроков', default=2, range_values=[2, 3, 4])
+menu.add.button('Play', start_the_game)
+menu.add.button('Quit', pygame_menu.events.EXIT)
+menu.mainloop(screen)
